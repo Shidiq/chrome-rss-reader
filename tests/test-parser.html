@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>feed-parser test</title></head>
+<body>
+<pre id="out">running…</pre>
+<script type="module">
+import { parseFeed } from '../common/feed-parser.js';
+
+const rss2 = `<?xml version="1.0"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+  <title>Blog Contoh</title>
+  <link>https://example.com</link>
+  <item>
+    <title>Artikel Satu</title>
+    <link>https://example.com/1</link>
+    <guid>guid-1</guid>
+    <pubDate>Fri, 07 Aug 2026 10:00:00 GMT</pubDate>
+    <dc:creator>Budi</dc:creator>
+    <description>Ringkasan singkat</description>
+    <content:encoded><![CDATA[<p>Konten <b>penuh</b></p>]]></content:encoded>
+  </item>
+  <item>
+    <title>Tanpa guid</title>
+    <link>https://example.com/2</link>
+    <description>Desc dua</description>
+  </item>
+</channel>
+</rss>`;
+
+const atom = `<?xml version="1.0"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Contoh</title>
+  <link rel="self" href="https://example.org/feed.xml"/>
+  <link rel="alternate" href="https://example.org"/>
+  <entry>
+    <title>Entry A</title>
+    <id>tag:example.org,2026:a</id>
+    <link rel="alternate" href="https://example.org/a"/>
+    <published>2026-08-06T08:00:00Z</published>
+    <author><name>Sari</name></author>
+    <summary>Ringkasan A</summary>
+    <content type="html">&lt;p&gt;Isi A&lt;/p&gt;</content>
+  </entry>
+</feed>`;
+
+const rdf = `<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel rdf:about="https://example.net">
+    <title>RDF Contoh</title>
+    <link>https://example.net</link>
+  </channel>
+  <item rdf:about="https://example.net/x">
+    <title>Item X</title>
+    <link>https://example.net/x</link>
+    <dc:creator>Andi</dc:creator>
+    <dc:date>2026-08-05T00:00:00Z</dc:date>
+    <description>Desc X</description>
+  </item>
+</rdf:RDF>`;
+
+const results = [];
+const assert = (cond, msg) => results.push(`${cond ? 'PASS' : 'FAIL'}: ${msg}`);
+
+try {
+  const r = parseFeed(rss2);
+  assert(r.title === 'Blog Contoh', 'rss2 title');
+  assert(r.siteUrl === 'https://example.com', 'rss2 siteUrl');
+  assert(r.items.length === 2, 'rss2 2 items');
+  assert(r.items[0].id === 'guid-1', 'rss2 guid as id');
+  assert(r.items[0].author === 'Budi', 'rss2 dc:creator');
+  assert(r.items[0].summary.includes('<b>penuh</b>'), 'rss2 content:encoded prioritas');
+  assert(r.items[0].published !== null, 'rss2 pubDate parsed');
+  assert(r.items[1].id === 'https://example.com/2', 'rss2 fallback id=link');
+  assert(r.items[1].summary === 'Desc dua', 'rss2 description fallback');
+
+  const a = parseFeed(atom);
+  assert(a.title === 'Atom Contoh', 'atom title');
+  assert(a.siteUrl === 'https://example.org', 'atom siteUrl rel=alternate');
+  assert(a.items.length === 1, 'atom 1 entry');
+  assert(a.items[0].link === 'https://example.org/a', 'atom entry link');
+  assert(a.items[0].author === 'Sari', 'atom author name');
+  assert(a.items[0].summary === '<p>Isi A</p>', 'atom content prioritas');
+
+  const d = parseFeed(rdf);
+  assert(d.title === 'RDF Contoh', 'rdf title');
+  assert(d.items.length === 1, 'rdf 1 item');
+  assert(d.items[0].author === 'Andi', 'rdf dc:creator');
+  assert(d.items[0].published !== null, 'rdf dc:date parsed');
+
+  let threw = false;
+  try { parseFeed('<html><body>bukan feed</body></html>'); } catch { threw = true; }
+  assert(threw, 'html ditolak');
+} catch (err) {
+  results.push('ERROR: ' + err.message);
+}
+
+document.getElementById('out').textContent = results.join('\n') +
+  '\n\nTOTAL: ' + results.filter(r => r.startsWith('PASS')).length + ' pass, ' +
+  results.filter(r => !r.startsWith('PASS')).length + ' fail';
+</script>
+</body>
+</html>

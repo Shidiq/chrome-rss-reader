@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Contoh Artikel dengan Gambar Lazy-Load</title>
+</head>
+<body>
+<header><nav><a href="/">Beranda</a> <a href="/tentang">Tentang</a></nav></header>
+
+<article>
+  <h1>Contoh Artikel dengan Gambar Lazy-Load</h1>
+  <p class="byline">Oleh Penulis Contoh</p>
+
+  <p>Fixture sintetis ini meniru markup yang dihasilkan Google PageSpeed Module dan
+  plugin lazy-load WordPress lain. Isinya sengaja ditulis sendiri agar tidak
+  mendistribusikan ulang konten pihak ketiga, namun struktur gambarnya identik dengan
+  yang ditemui di situs nyata sehingga regresi tetap terdeteksi.</p>
+
+  <p>Pada pola ini atribut <code>src</code> diisi berkas placeholder — biasanya GIF
+  transparan satu piksel — sementara alamat gambar sebenarnya disimpan di atribut
+  <code>data-pagespeed-lazy-src</code>. Penukaran kedua nilai itu dikerjakan oleh
+  JavaScript milik situs yang dipicu lewat atribut <code>onload</code>.</p>
+
+  <img decoding="async" width="824" height="246"
+       data-pagespeed-lazy-src="https://contoh.test/wp-content/uploads/2026/08/gambar-satu.png"
+       data-pagespeed-lazy-srcset="https://contoh.test/wp-content/uploads/2026/08/gambar-satu.png 824w, https://contoh.test/wp-content/uploads/2026/08/gambar-satu-300x90.png 300w"
+       sizes="(max-width: 824px) 100vw, 824px"
+       src="/pagespeed_static/1.JiBnMqyl6S.gif"
+       onload="pagespeed.lazyLoadImages.loadIfVisibleAndMaybeBeacon(this);"
+       onerror="this.onerror=null;pagespeed.lazyLoadImages.loadIfVisibleAndMaybeBeacon(this);">
+
+  <p>Reader view membuang seluruh JavaScript halaman karena isinya konten remote yang
+  tidak tepercaya. Konsekuensinya penukaran tadi tidak pernah terjadi, dan tanpa
+  penanganan khusus pembaca hanya melihat deretan placeholder transparan alih-alih
+  gambar yang dimaksud penulis artikel.</p>
+
+  <img loading="lazy" decoding="async" width="854" height="658"
+       data-pagespeed-lazy-src="https://contoh.test/wp-content/uploads/2026/08/gambar-dua.png"
+       data-pagespeed-lazy-srcset="https://contoh.test/wp-content/uploads/2026/08/gambar-dua.png 854w"
+       src="/pagespeed_static/1.JiBnMqyl6S.gif"
+       onload="pagespeed.lazyLoadImages.loadIfVisibleAndMaybeBeacon(this);">
+
+  <p>Karena itu sanitizer memindahkan sendiri alamat asli dari atribut
+  <code>data-*</code> ke <code>src</code> dan <code>srcset</code> sebelum merender,
+  lalu membuang atribut lazy yang sudah tidak terpakai. Varian nama atribut yang
+  ditangani mencakup PageSpeed, WP Rocket, dan lazysizes.</p>
+
+  <p>Gambar berikut memakai penamaan lazysizes, yang menyimpan alamat di
+  <code>data-src</code> dan memakai data URI sebagai placeholder alih-alih berkas GIF
+  terpisah. Keduanya harus menghasilkan perilaku yang sama setelah disanitasi.</p>
+
+  <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+       data-src="/wp-content/uploads/2026/08/gambar-tiga.png"
+       data-srcset="/wp-content/uploads/2026/08/gambar-tiga.png 640w"
+       width="640" height="400" alt="Gambar ketiga">
+
+  <p>Terakhir, elemen <code>picture</code> dengan <code>source</code> ikut diperiksa
+  karena banyak tema modern menyajikan format WebP lewat elemen tersebut dan menunda
+  pemuatannya dengan mekanisme yang persis sama.</p>
+
+  <picture>
+    <source type="image/webp" data-srcset="/wp-content/uploads/2026/08/gambar-empat.webp 1x">
+    <img data-src="/wp-content/uploads/2026/08/gambar-empat.jpg" width="600" height="400" alt="Gambar keempat">
+  </picture>
+
+  <p>Bila keempat gambar di atas muncul dengan alamat aslinya dan tidak ada placeholder
+  yang tersisa, maka pemulihan lazy-load bekerja sebagaimana mestinya.</p>
+</article>
+
+<footer><p>Footer situs yang seharusnya tidak ikut terekstrak.</p></footer>
+</body>
+</html>

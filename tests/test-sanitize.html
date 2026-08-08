@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="id">
+<head><meta charset="utf-8"><title>sanitize test</title></head>
+<body>
+<pre id="out">running…</pre>
+<h3>Render nyata (hasil reader view):</h3>
+<div id="preview" style="max-width:42em"></div>
+
+<script src="../lib/readability.js"></script>
+<script type="module">
+import { renderSanitized } from '../common/sanitize.js';
+
+const results = [];
+const assert = (cond, msg) => results.push(`${cond ? 'PASS' : 'FAIL'}: ${msg}`);
+const box = () => document.createElement('div');
+
+// --- unit: keamanan ---
+{
+  const c = box();
+  renderSanitized(c, '<p>hai</p><script>window.pwned=1<\/script>', 'https://e.com/');
+  assert(!c.querySelector('script'), 'script dibuang');
+  assert(window.pwned === undefined, 'script tidak dieksekusi');
+}
+{
+  const c = box();
+  renderSanitized(c, '<img src="x.png" onerror="window.pwned2=1">', 'https://e.com/a/');
+  assert(!c.querySelector('img').hasAttribute('onerror'), 'atribut on* dibuang');
+  assert(c.querySelector('img').getAttribute('src') === 'https://e.com/a/x.png', 'src relatif diabsolutkan');
+}
+{
+  const c = box();
+  renderSanitized(c, '<a href="javascript:alert(1)">x</a>', 'https://e.com/');
+  assert(!c.querySelector('a').hasAttribute('href'), 'href javascript: dibuang');
+}
+{
+  const c = box();
+  renderSanitized(c, '<a href="/b">x</a>', 'https://e.com/');
+  const a = c.querySelector('a');
+  assert(a.getAttribute('target') === '_blank' && a.getAttribute('rel') === 'noopener noreferrer', 'link buka tab baru + rel aman');
+}
+{
+  const c = box();
+  renderSanitized(c, '<iframe src="https://e.com"></iframe><form><input></form>', 'https://e.com/');
+  assert(!c.querySelector('iframe, form, input'), 'iframe/form/input dibuang');
+}
+
+// --- unit: lazy-load ---
+{
+  const c = box();
+  renderSanitized(c,
+    '<img src="/spacer.gif" data-pagespeed-lazy-src="https://e.com/real.png" data-pagespeed-lazy-srcset="https://e.com/real.png 824w">',
+    'https://e.com/');
+  const img = c.querySelector('img');
+  assert(img.getAttribute('src') === 'https://e.com/real.png', 'pagespeed lazy-src dipromosikan');
+  assert(img.getAttribute('srcset') === 'https://e.com/real.png 824w', 'pagespeed lazy-srcset dipromosikan');
+  assert(!img.hasAttribute('data-pagespeed-lazy-src'), 'atribut lazy dibersihkan');
+}
+{
+  const c = box();
+  renderSanitized(c, '<img src="data:image/gif;base64,R0lGOD" data-src="/foto.jpg">', 'https://e.com/');
+  assert(c.querySelector('img').getAttribute('src') === 'https://e.com/foto.jpg', 'data-src dipromosikan + diabsolutkan');
+}
+{
+  const c = box();
+  renderSanitized(c, '<img data-lazy-src="https://e.com/w.jpg">', 'https://e.com/');
+  assert(c.querySelector('img').getAttribute('src') === 'https://e.com/w.jpg', 'data-lazy-src (WP Rocket) dipromosikan');
+}
+{
+  const c = box();
+  renderSanitized(c, '<img src="data:image/png;base64,iVBORw0KGgo=">', 'https://e.com/');
+  assert(c.querySelector('img').getAttribute('src').startsWith('data:image/png'), 'data:image inline dipertahankan');
+}
+{
+  const c = box();
+  renderSanitized(c, '<a href="data:text/html,<b>x</b>">y</a>', 'https://e.com/');
+  assert(!c.querySelector('a').hasAttribute('href'), 'data:text/html pada link dibuang');
+}
+{
+  const c = box();
+  renderSanitized(c, '<picture><source data-srcset="/a.webp 1x"><img data-src="/a.jpg"></picture>', 'https://e.com/');
+  assert(c.querySelector('source').getAttribute('srcset') === 'https://e.com/a.webp 1x', '<source> lazy srcset dipromosikan');
+}
+
+// --- integrasi: Readability + sanitasi pada halaman utuh ---
+const ART_URL = 'https://contoh.test/artikel-lazy-load/';
+try {
+  const html = await (await fetch('fixtures/lazyload-article.html')).text();
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const base = doc.createElement('base');
+  base.href = ART_URL;
+  doc.head.prepend(base);
+  const article = new Readability(doc).parse();
+  assert(!!article?.content, 'integrasi: Readability berhasil ekstrak');
+  assert(!/Footer situs/.test(article.content), 'integrasi: footer situs tidak ikut terekstrak');
+
+  const preview = document.getElementById('preview');
+  renderSanitized(preview, article.content, ART_URL);
+
+  const imgs = [...preview.querySelectorAll('img')];
+  const real = imgs.filter((i) => /wp-content\/uploads/.test(i.getAttribute('src') || ''));
+  const placeholder = imgs.filter((i) =>
+    /pagespeed_static/.test(i.getAttribute('src') || '') || /^data:/.test(i.getAttribute('src') || '')
+  );
+  results.push(`INFO: integrasi img total=${imgs.length} asli=${real.length} placeholder=${placeholder.length}`);
+  assert(real.length === 4, 'integrasi: keempat gambar dipulihkan ke alamat asli');
+  assert(placeholder.length === 0, 'integrasi: tidak ada placeholder tersisa');
+  assert(
+    !!preview.querySelector('picture source[srcset*="gambar-empat.webp"]'),
+    'integrasi: <source> di dalam <picture> ikut dipulihkan'
+  );
+  assert(![...preview.querySelectorAll('*')].some((el) => el.hasAttribute('onload')), 'integrasi: onload situs dibuang');
+
+  for (const im of imgs) im.style.maxWidth = '100%';
+} catch (err) {
+  results.push('ERROR integrasi: ' + err.message);
+}
+
+const pass = results.filter((r) => r.startsWith('PASS')).length;
+const fail = results.filter((r) => r.startsWith('FAIL') || r.startsWith('ERROR')).length;
+document.getElementById('out').textContent = results.join('\n') + `\n\nTOTAL: ${pass} pass, ${fail} fail`;
+</script>
+</body>
+</html>

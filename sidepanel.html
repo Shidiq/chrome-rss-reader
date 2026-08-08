@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <title>RSS Reader</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header id="topbar">
+      <button id="btn-back" class="icon-btn" hidden title="Kembali">←</button>
+      <h1 id="topbar-title">Feed</h1>
+      <div class="spacer"></div>
+      <button id="btn-mark-all" class="icon-btn" hidden title="Tandai semua dibaca">✓</button>
+      <button id="btn-refresh" class="icon-btn" title="Refresh semua feed">⟳</button>
+    </header>
+
+    <main>
+      <!-- Tampilan 1: daftar feed -->
+      <section id="view-feeds">
+        <div class="add-actions">
+          <button id="btn-add-tab" class="primary">＋ Tambah dari tab ini</button>
+          <form id="form-add-url">
+            <input id="input-url" type="url" placeholder="Atau tempel URL feed…" required />
+            <button type="submit">Tambah</button>
+          </form>
+          <div id="add-status" class="status" hidden></div>
+          <div id="feed-candidates" hidden></div>
+        </div>
+        <ul id="feed-list" class="list"></ul>
+        <p id="feeds-empty" class="empty" hidden>
+          Belum ada feed. Buka website favoritmu lalu klik <b>Tambah dari tab ini</b>.
+        </p>
+      </section>
+
+      <!-- Tampilan 2: daftar artikel -->
+      <section id="view-articles" hidden>
+        <ul id="article-list" class="list"></ul>
+        <p id="articles-empty" class="empty" hidden>Tidak ada artikel.</p>
+      </section>
+
+      <!-- Tampilan 3: reader -->
+      <section id="view-reader" hidden>
+        <div id="reader-status" class="status" hidden></div>
+        <article id="reader">
+          <h2 id="reader-title"></h2>
+          <p id="reader-meta"></p>
+          <div id="reader-content"></div>
+          <p><a id="reader-original" href="#" target="_blank" rel="noopener">Buka artikel asli ↗</a></p>
+        </article>
+      </section>
+    </main>
+
+    <script src="lib/readability.js"></script>
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>
