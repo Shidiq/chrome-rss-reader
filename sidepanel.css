@@ -28,11 +28,22 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   margin: 0;
   font: 14px/1.5 system-ui, sans-serif;
   background: var(--bg);
   color: var(--fg);
+  /* viewport-locked layout: hanya <main> yang scroll.
+     Mencegah scrollbar body muncul/hilang saat konten render,
+     yang memicu "ResizeObserver loop" di host side panel. */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* ---- top bar ---- */
@@ -42,10 +53,8 @@ body {
   gap: 6px;
   padding: 8px 10px;
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
   background: var(--bg);
-  z-index: 1;
+  flex: 0 0 auto;
 }
 
 #topbar h1 {
@@ -76,6 +85,13 @@ body {
 
 main {
   padding: 10px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* gutter selalu direservasi -> lebar konten tidak berubah saat scrollbar muncul */
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
 }
 
 /* ---- tambah feed ---- */
@@ -261,6 +277,8 @@ li.unread .row-title::before {
 #reader-content {
   font-size: 15px;
   line-height: 1.7;
+  /* URL/kata panjang tidak memaksa lebar horizontal berubah */
+  overflow-wrap: anywhere;
 }
 
 #reader-content img,

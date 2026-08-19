@@ -15,6 +15,24 @@ import {
   getUnreadCounts,
 } from './common/storage.js';
 
+// Chrome side panel host memakai ResizeObserver untuk mengukur dokumen.
+// Saat konten reader render (gambar selesai load, view berganti), observer bisa
+// melewati satu frame dan browser melaporkan error benign ini ke halaman.
+// Spec: notifikasi tetap terkirim di frame berikutnya, tidak ada state yang rusak.
+// Layout sudah dikunci di sidepanel.css; sisa noise-nya dibungkam di sini saja.
+const RO_BENIGN = /^ResizeObserver loop (completed with undelivered notifications|limit exceeded)/;
+
+window.addEventListener(
+  'error',
+  (e) => {
+    if (RO_BENIGN.test(e.message || '')) {
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  },
+  true,
+);
+
 const $ = (id) => document.getElementById(id);
 
 const views = {

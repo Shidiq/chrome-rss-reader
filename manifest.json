@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "RSS Reader",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "RSS reader di side panel: tambah feed dari tab aktif, baca artikel dalam reader view",
   "permissions": [
     "sidePanel",
